@@ -1,0 +1,13 @@
+# Java build output
+bin/
+*.class
+
+# Local serialized planning data
+planejamento.dat
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+
+# Assignment source document
+N685-Programação orient objetos-Atividade Final.pdf

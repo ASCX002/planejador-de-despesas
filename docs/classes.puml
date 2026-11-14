@@ -1,0 +1,58 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class App
+class PlannerFrame
+class PlannerController
+class Planning {
+  - participants: Map<Integer, Participant>
+  - expenses: List<Expense>
+  + addParticipant(...)
+  + updateParticipant(...)
+  + removeParticipant(...)
+  + addExpense(...)
+  + updateExpense(...)
+  + removeExpense(...)
+  + totalsByParticipant()
+}
+class Participant {
+  - code: int
+  - name: String
+  - budgetCents: long
+}
+abstract class Expense {
+  - id: String
+  - description: String
+  - amountCents: long
+  - participantCodes: List<Integer>
+  - essential: boolean
+  - priority: int
+  + shareFor(code): long
+  + getTotalCents(): long
+}
+class FixedExpense
+class PerPersonExpense
+interface PlanningRepository {
+  + save(planning)
+  + load()
+}
+class FilePlanningRepository
+class AlternativeSimulator {
+  + findBest(planning): SimulationResult
+}
+class SimulationResult
+
+App --> PlannerController
+App --> PlannerFrame
+PlannerFrame --> PlannerController
+PlannerController --> Planning
+PlannerController --> PlanningRepository
+Planning "1" *-- "0..*" Participant
+Planning "1" *-- "0..*" Expense
+Expense <|-- FixedExpense
+Expense <|-- PerPersonExpense
+Expense "0..*" --> "1..*" Participant : códigos vinculados
+FilePlanningRepository ..|> PlanningRepository
+AlternativeSimulator --> Planning
+AlternativeSimulator --> SimulationResult
+@enduml
