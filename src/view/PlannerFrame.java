@@ -76,6 +76,14 @@ public final class PlannerFrame extends JFrame {
                 controller.loadReferencePlanning();
             }
         });
+        addAction(toolbar, "Começar do zero", () -> {
+            if (confirm("Apagar participantes e despesas do planejamento atual e começar do zero?")) {
+                controller.startNewPlanning();
+                clearParticipantFields();
+                clearExpenseFields();
+                simulatorArea.setText("");
+            }
+        });
         addAction(toolbar, "Salvar", () -> runAction(() -> {
             controller.save();
             message("Planejamento salvo em planejamento.dat.");

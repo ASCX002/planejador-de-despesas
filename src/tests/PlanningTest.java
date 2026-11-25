@@ -6,6 +6,7 @@ import model.Planning;
 import model.SimulationResult;
 import controller.PlannerController;
 import persistence.FilePlanningRepository;
+import view.Money;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ public final class PlanningTest {
         centDistribution();
         validationDoesNotChangeState();
         expenseDeletionAndBudgetUpdate();
+        startNewPlanning();
         persistenceRoundTrip();
         failedLoadPreservesPlanning();
         simulatorCases();
@@ -31,6 +33,10 @@ public final class PlanningTest {
         check(totals.equals(Map.of(1, 7500L, 2, 6000L, 3, 7500L)),
                 "Totais do caso de referência incorretos.");
         check(planning.getTotalCents() == 21000, "Custo total deve ser R$ 210,00.");
+        check(totals.get(1) - planning.getParticipants().get(1).getBudgetCents() == 500
+                        && totals.get(3) - planning.getParticipants().get(3).getBudgetCents() == 500
+                        && totals.get(2).equals(planning.getParticipants().get(2).getBudgetCents()),
+                "Ana e Carla devem exceder o orçamento em R$ 5,00; Bruno deve ficar no limite.");
     }
 
     private static void centDistribution() {
@@ -51,15 +57,23 @@ public final class PlanningTest {
                 List.of(1), true, 0));
         expectFailure(() -> planning.addExpense("Sem participantes", 100, false,
                 List.of(), true, 0));
+        expectFailure(() -> planning.addExpense("", 100, false,
+                List.of(1), true, 0));
+        expectFailure(() -> planning.addParticipant(1, "Código repetido", 10000));
+        expectFailure(() -> planning.addParticipant(4, " ", 10000));
+        expectFailure(() -> Money.parseCents(""));
         check(planning.getExpenses().size() == before,
                 "Uma entrada inválida alterou o planejamento.");
+        check(planning.getParticipants().size() == 3,
+                "Um participante inválido ou com código duplicado alterou o planejamento.");
     }
 
     private static void expenseDeletionAndBudgetUpdate() {
         Planning planning = Planning.referencePlanning();
         planning.updateParticipant(1, "Ana", 8000);
-        check(planning.totalsByParticipant().get(1) == 7500,
-                "A alteração do orçamento não deve alterar o custo.");
+        check(planning.getParticipants().get(1).getBudgetCents() == 8000
+                        && planning.totalsByParticipant().get(1) == 7500,
+                "A alteração do orçamento não deve alterar o custo e deve atualizar o limite.");
         String activityId = planning.getExpenses().stream()
                 .filter(expense -> expense.getDescription().equals("Atividade recreativa"))
                 .findFirst().orElseThrow().getId();
@@ -73,14 +87,42 @@ public final class PlanningTest {
     private static void persistenceRoundTrip() throws Exception {
         Path file = Files.createTempFile("planejamento-test-", ".dat");
         try {
-            Planning original = Planning.referencePlanning();
-            FilePlanningRepository repository = new FilePlanningRepository(file);
-            repository.save(original);
-            Planning loaded = repository.load();
+            PlannerController beforeRestart = new PlannerController(
+                    new FilePlanningRepository(file));
+            beforeRestart.loadReferencePlanning();
+            beforeRestart.save();
+
+            PlannerController afterRestart = new PlannerController(
+                    new FilePlanningRepository(file));
+            afterRestart.load();
+            Planning loaded = afterRestart.getPlanning();
             check(loaded.getTotalCents() == 21000
-                            && loaded.totalsByParticipant().equals(original.totalsByParticipant())
-                            && loaded.getExpenses().size() == 4,
-                    "Persistência não recuperou todos os dados.");
+                            && loaded.totalsByParticipant().equals(
+                                    beforeRestart.getPlanning().totalsByParticipant())
+                            && loaded.getParticipants().size() == 3
+                            && loaded.getExpenses().size() == 4
+                            && loaded.getExpenses().stream()
+                                    .allMatch(expense -> !expense.getParticipantCodes().isEmpty()),
+                    "Salvar e recriar o controlador não recuperou o planejamento completo.");
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    private static void startNewPlanning() throws Exception {
+        Path file = Files.createTempFile("planejamento-novo-", ".dat");
+        try {
+            PlannerController controller = new PlannerController(new FilePlanningRepository(file));
+            controller.loadReferencePlanning();
+            controller.startNewPlanning();
+            check(controller.getPlanning().getParticipants().isEmpty()
+                            && controller.getPlanning().getExpenses().isEmpty()
+                            && controller.getPlanning().getTotalCents() == 0,
+                    "Começar do zero deve limpar participantes e despesas.");
+
+            controller.loadReferencePlanning();
+            check(controller.getPlanning().getTotalCents() == 21000,
+                    "O carregamento do caso de referência deve continuar disponível.");
         } finally {
             Files.deleteIfExists(file);
         }

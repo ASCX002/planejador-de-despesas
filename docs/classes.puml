@@ -1,54 +1,113 @@
 @startuml
 skinparam classAttributeIconSize 0
+skinparam linetype ortho
 
-class App
-class PlannerFrame
-class PlannerController
+class App {
+  +main(args: String[]): void
+}
+class PlannerFrame {
+  -controller: PlannerController
+  -participantModel: DefaultTableModel
+  -expenseModel: DefaultTableModel
+  +refresh(planning: Planning): void
+  +showError(text: String): void
+}
+class PlannerController {
+  -repository: PlanningRepository
+  -planning: Planning
+  -view: PlannerFrame
+  +addParticipant(code, name, budgetCents): void
+  +updateParticipant(code, name, budgetCents): void
+  +removeParticipant(code): void
+  +addExpense(...): String
+  +updateExpense(...): void
+  +removeExpense(id): void
+  +save(): void
+  +load(): void
+  +simulate(): SimulationResult
+}
 class Planning {
-  - participants: Map<Integer, Participant>
-  - expenses: List<Expense>
-  + addParticipant(...)
-  + updateParticipant(...)
-  + removeParticipant(...)
-  + addExpense(...)
-  + updateExpense(...)
-  + removeExpense(...)
-  + totalsByParticipant()
+  - participants: LinkedHashMap<Integer, Participant>
+  - expenses: ArrayList<Expense>
+  +addParticipant(code: int, name: String, budgetCents: long): void
+  +updateParticipant(code: int, name: String, budgetCents: long): void
+  +removeParticipant(code: int): void
+  +addExpense(description, amountCents, perPerson, codes, essential, priority): String
+  +updateExpense(id, description, amountCents, perPerson, codes, essential, priority): void
+  +removeExpense(id: String): void
+  +getParticipants(): Map<Integer, Participant>
+  +getExpenses(): List<Expense>
+  +totalsByParticipant(): Map<Integer, Long>
+  +getTotalCents(): long
 }
 class Participant {
-  - code: int
-  - name: String
-  - budgetCents: long
+  -code: int
+  -name: String
+  -budgetCents: long
+  +getCode(): int
+  +getName(): String
+  +getBudgetCents(): long
 }
 abstract class Expense {
-  - id: String
-  - description: String
-  - amountCents: long
-  - participantCodes: List<Integer>
-  - essential: boolean
-  - priority: int
-  + shareFor(code): long
-  + getTotalCents(): long
+  -id: String
+  -description: String
+  -amountCents: long
+  -participantCodes: ArrayList<Integer>
+  -essential: boolean
+  -priority: int
+  #Expense(id, description, amountCents, participantCodes, essential, priority)
+  +getId(): String
+  +getDescription(): String
+  +getAmountCents(): long
+  +getParticipantCodes(): List<Integer>
+  +isEssential(): boolean
+  +getPriority(): int
+  {abstract} +shareFor(code: int): long
+  {abstract} +getTotalCents(): long
+  {abstract} +getType(): String
 }
-class FixedExpense
-class PerPersonExpense
+class FixedExpense {
+  +shareFor(participantCode: int): long
+  +getTotalCents(): long
+  +getType(): String
+}
+class PerPersonExpense {
+  +shareFor(participantCode: int): long
+  +getTotalCents(): long
+  +getType(): String
+}
 interface PlanningRepository {
-  + save(planning)
-  + load()
+  +save(planning: Planning): void
+  +load(): Planning
 }
-class FilePlanningRepository
+class FilePlanningRepository {
+  -file: Path
+  +save(planning: Planning): void
+  +load(): Planning
+}
 class AlternativeSimulator {
-  + findBest(planning): SimulationResult
+  +findBest(planning: Planning): SimulationResult
 }
-class SimulationResult
+class SimulationResult <<record>> {
+  -kept: List<Expense>
+  -removed: List<Expense>
+  -totals: Map<Integer, Long>
+  -priorityScore: long
+  -solutionFound: boolean
+  +kept(): List<Expense>
+  +removed(): List<Expense>
+  +totals(): Map<Integer, Long>
+  +priorityScore(): long
+  +solutionFound(): boolean
+}
 
 App --> PlannerController
 App --> PlannerFrame
 PlannerFrame --> PlannerController
 PlannerController --> Planning
 PlannerController --> PlanningRepository
-Planning "1" *-- "0..*" Participant
-Planning "1" *-- "0..*" Expense
+Planning "1" *-- "0..*" Participant : cadastro
+Planning "1" *-- "0..*" Expense : despesas
 Expense <|-- FixedExpense
 Expense <|-- PerPersonExpense
 Expense "0..*" --> "1..*" Participant : códigos vinculados

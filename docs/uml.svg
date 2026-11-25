@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="680" viewBox="0 0 1120 680" role="img" aria-label="Diagrama de classes UML do planejador">
+  <rect width="1120" height="680" fill="#ffffff"/>
+  <text x="560" y="36" fill="#111827" font-family="serif" font-size="22" font-weight="bold" text-anchor="middle">Cabe no bolso - Diagrama de classes UML</text>
+
+  <!-- Aplicacao -->
+  <rect x="24" y="70" width="190" height="72" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="119" y="98" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">App</text>
+  <line x1="24" y1="110" x2="214" y2="110" stroke="#243447" stroke-width="1"/>
+  <text x="119" y="130" fill="#374151" font-family="serif" font-size="15" text-anchor="middle">inicia o sistema</text>
+
+  <rect x="24" y="190" width="190" height="104" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="119" y="217" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PlannerFrame</text>
+  <line x1="24" y1="229" x2="214" y2="229" stroke="#243447" stroke-width="1"/>
+  <text x="36" y="252" fill="#374151" font-family="serif" font-size="15">- abas: JPanel</text>
+  <text x="36" y="278" fill="#374151" font-family="serif" font-size="15">+ captar entradas()</text>
+
+  <rect x="24" y="350" width="190" height="104" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="119" y="377" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PlannerController</text>
+  <line x1="24" y1="389" x2="214" y2="389" stroke="#243447" stroke-width="1"/>
+  <text x="36" y="412" fill="#374151" font-family="serif" font-size="15">+ executar ações()</text>
+  <text x="36" y="438" fill="#374151" font-family="serif" font-size="15">+ atualizar visão()</text>
+
+  <!-- Modelo -->
+  <rect x="280" y="190" width="250" height="142" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="405" y="217" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">Planning</text>
+  <line x1="280" y1="229" x2="530" y2="229" stroke="#243447" stroke-width="1"/>
+  <text x="292" y="252" fill="#374151" font-family="serif" font-size="14">- participants: Map&lt;Integer, Participant&gt;</text>
+  <text x="292" y="278" fill="#374151" font-family="serif" font-size="15">- expenses: List&lt;Expense&gt;</text>
+  <text x="292" y="305" fill="#374151" font-family="serif" font-size="15">+ totalsByParticipant(): Map</text>
+
+  <rect x="280" y="420" width="250" height="108" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="405" y="447" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">Participant</text>
+  <line x1="280" y1="459" x2="530" y2="459" stroke="#243447" stroke-width="1"/>
+  <text x="292" y="482" fill="#374151" font-family="serif" font-size="15">- code: int</text>
+  <text x="292" y="506" fill="#374151" font-family="serif" font-size="15">- name: String</text>
+  <text x="292" y="520" fill="#374151" font-family="serif" font-size="14">- budgetCents: long</text>
+
+  <!-- Heranca -->
+  <rect x="615" y="190" width="260" height="142" fill="#eef4fb" stroke="#243447" stroke-width="2"/>
+  <text x="745" y="217" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">«abstract» Expense</text>
+  <line x1="615" y1="229" x2="875" y2="229" stroke="#243447" stroke-width="1"/>
+  <text x="627" y="252" fill="#374151" font-family="serif" font-size="15">- id: String</text>
+  <text x="627" y="278" fill="#374151" font-family="serif" font-size="15">- amountCents: long</text>
+  <text x="627" y="305" fill="#374151" font-family="serif" font-size="15">+ shareFor(code): long</text>
+
+  <rect x="615" y="420" width="260" height="108" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="745" y="447" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">FixedExpense</text>
+  <line x1="615" y1="459" x2="875" y2="459" stroke="#243447" stroke-width="1"/>
+  <text x="627" y="482" fill="#374151" font-family="serif" font-size="15">divide em centavos inteiros</text>
+  <text x="627" y="506" fill="#374151" font-family="serif" font-size="15">distribui o restante em código</text>
+
+  <rect x="615" y="552" width="260" height="108" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="745" y="579" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PerPersonExpense</text>
+  <line x1="615" y1="591" x2="875" y2="591" stroke="#243447" stroke-width="1"/>
+  <text x="627" y="614" fill="#374151" font-family="serif" font-size="15">cobra o valor unitário</text>
+  <text x="627" y="638" fill="#374151" font-family="serif" font-size="15">de cada participante</text>
+
+  <!-- Persistencia -->
+  <rect x="910" y="190" width="186" height="108" fill="#f4f0fa" stroke="#243447" stroke-width="2"/>
+  <text x="1003" y="217" fill="#111827" font-family="serif" font-size="16" font-weight="bold" text-anchor="middle">«interface»</text>
+  <text x="1003" y="239" fill="#111827" font-family="serif" font-size="17" font-weight="bold" text-anchor="middle">PlanningRepository</text>
+  <line x1="910" y1="251" x2="1096" y2="251" stroke="#243447" stroke-width="1"/>
+  <text x="922" y="274" fill="#374151" font-family="serif" font-size="15">+ save(Planning)</text>
+  <text x="922" y="290" fill="#374151" font-family="serif" font-size="15">+ load(): Planning</text>
+
+  <rect x="910" y="420" width="186" height="108" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="1003" y="447" fill="#111827" font-family="serif" font-size="17" font-weight="bold" text-anchor="middle">FilePlanning</text>
+  <text x="1003" y="469" fill="#111827" font-family="serif" font-size="17" font-weight="bold" text-anchor="middle">Repository</text>
+  <line x1="910" y1="481" x2="1096" y2="481" stroke="#243447" stroke-width="1"/>
+  <text x="922" y="504" fill="#374151" font-family="serif" font-size="15">serialização</text>
+  <text x="922" y="520" fill="#374151" font-family="serif" font-size="15">arquivo local</text>
+
+  <rect x="910" y="552" width="186" height="108" fill="#ffffff" stroke="#243447" stroke-width="2"/>
+  <text x="1003" y="579" fill="#111827" font-family="serif" font-size="17" font-weight="bold" text-anchor="middle">Alternative</text>
+  <text x="1003" y="601" fill="#111827" font-family="serif" font-size="17" font-weight="bold" text-anchor="middle">Simulator</text>
+  <line x1="910" y1="613" x2="1096" y2="613" stroke="#243447" stroke-width="1"/>
+  <text x="922" y="636" fill="#374151" font-family="serif" font-size="15">+ findBest()</text>
+
+  <!-- Relacoes -->
+  <line x1="119" y1="142" x2="119" y2="190" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <polygon points="119,190 112,178 126,178" fill="#ffffff" stroke="#4b5563" stroke-width="1"/>
+  <line x1="119" y1="294" x2="119" y2="350" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <polygon points="119,350 112,338 126,338" fill="#ffffff" stroke="#4b5563" stroke-width="1"/>
+  <line x1="214" y1="402" x2="280" y2="260" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <polygon points="280,260 266,262 274,274" fill="#ffffff" stroke="#4b5563" stroke-width="1"/>
+
+  <!-- Planning para Participant e Expense -->
+  <line x1="405" y1="332" x2="405" y2="420" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <text x="418" y="374" fill="#6b7280" font-family="serif" font-size="14">1</text>
+  <text x="418" y="392" fill="#6b7280" font-family="serif" font-size="14">0..*</text>
+  <line x1="530" y1="260" x2="615" y2="260" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <text x="548" y="250" fill="#6b7280" font-family="serif" font-size="14">1</text>
+  <text x="580" y="250" fill="#6b7280" font-family="serif" font-size="14">0..*</text>
+
+  <!-- Heranca -->
+  <line x1="745" y1="332" x2="745" y2="420" fill="none" stroke="#4b5563" stroke-width="2"/>
+  <polygon points="745,332 736,348 754,348" fill="#ffffff" stroke="#4b5563" stroke-width="2"/>
+  <line x1="745" y1="420" x2="745" y2="552" fill="none" stroke="#4b5563" stroke-width="2" stroke-dasharray="0"/>
+
+  <!-- Implementacao e dependencias -->
+  <line x1="1003" y1="420" x2="1003" y2="298" fill="none" stroke="#4b5563" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="1012" y="362" fill="#6b7280" font-family="serif" font-size="14">implementa</text>
+  <line x1="530" y1="402" x2="910" y2="606" fill="none" stroke="#4b5563" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="720" y="515" fill="#6b7280" font-family="serif" font-size="14">usa</text>
+
+</svg>

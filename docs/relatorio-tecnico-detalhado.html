@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Cabe no bolso - Relatório técnico detalhado</title>
+  <style>
+    @page { size: A4; margin: 14mm 16mm 15mm 16mm; }
+    body { font-family: "Times New Roman", serif; font-size: 10pt; line-height: 1.22; color: #111; }
+    h1 { font-size: 17pt; margin: 0 0 3mm; text-align: center; }
+    h2 { font-size: 13pt; margin: 3.5mm 0 1.5mm; border-bottom: 1px solid #777; }
+    h3 { font-size: 10.8pt; margin: 2mm 0 0.7mm; }
+    p { margin: 1mm 0; text-align: justify; }
+    .subtitle { text-align: center; font-size: 11pt; margin: 0 0 2.5mm; }
+    .meta { border: 1px solid #777; padding: 2mm; margin: 2mm 0 3mm; }
+    .meta p { margin: 0.5mm 0; }
+    .placeholder { color: #7a1f1f; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5mm 0; font-size: 8.3pt; }
+    th, td { border: 1px solid #777; padding: 0.8mm; vertical-align: top; }
+    th { background: #e8e8e8; text-align: left; }
+    .number { text-align: right; white-space: nowrap; }
+    .center { text-align: center; }
+    figure { margin: 1.5mm 0; text-align: center; }
+    figure.uml { page-break-inside: avoid; }
+    figure img { width: 170mm; height: auto; max-width: 100%; max-height: 126mm; }
+    figcaption { font-size: 8.5pt; margin-top: 0.7mm; }
+    ul { margin: 1mm 0 1mm 5mm; padding-left: 4mm; }
+    li { margin-bottom: 0.5mm; }
+    code { font-family: "Courier New", monospace; font-size: 8.5pt; }
+    pre { margin: 1mm 0; font-size: 8.4pt; }
+    .pagebreak { page-break-before: always; }
+  </style>
+</head>
+<body>
+
+<h1>Cabe no bolso: Planejador de despesas compartilhadas</h1>
+<p class="subtitle">Relatório técnico da atividade final de Programação Orientada a Objetos</p>
+<div class="meta">
+  <p><strong>Repositório:</strong> https://github.com/ASCX002/planejador-de-despesas</p>
+  <p><strong>Objetivo:</strong> implementar uma aplicação Java Swing que calcula e valida despesas compartilhadas frente aos orçamentos individuais e permite salvar e recuperar o planejamento.</p>
+  <p><strong>Versão analisada:</strong> commit d20661d (13/11/2026). Relatório: 23/11/2026.</p>
+</div>
+
+<h2>1. Repositório, objetivo e cenário do problema</h2>
+<p><strong>Cenário.</strong> Um grupo organiza um passeio. Algumas despesas, como transporte, são valores totais rateados entre quem participa; outras, como almoço, são cobradas por pessoa. Cada integrante tem um orçamento, e o grupo precisa saber o custo de cada um e se ele ultrapassa seu limite. A aplicação representa um planejamento por vez e persiste os dados em <code>planejamento.dat</code>.</p>
+<p>O problema técnico central é manter participantes, despesas, vínculos e totais coerentes após cadastro, edição, exclusão e recuperação do arquivo. O código está organizado em pacotes sob <code>src</code>; as instruções de compilação e teste estão no README do repositório.</p>
+
+<h2>2. Funcionalidades obrigatórias, regras e implementação</h2>
+<table>
+  <caption><strong>Tabela 1 - As cinco funcionalidades obrigatórias e onde foram implementadas.</strong></caption>
+  <tr><th>Funcionalidade</th><th>Implementação no projeto</th><th>Por que foi feita assim</th></tr>
+  <tr><td>Participantes</td><td><code>Planning.addParticipant</code>, <code>updateParticipant</code>, <code>removeParticipant</code>; campos e tabela na aba Participantes de <code>PlannerFrame</code>.</td><td>O modelo aplica as regras uma vez, independentemente da origem da ação; a tela serve para editar e consultar.</td></tr>
+  <tr><td>Despesas</td><td><code>Planning.addExpense</code>, <code>updateExpense</code>, <code>removeExpense</code>; formulário e tabela na aba Despesas.</td><td>Uma identificação UUID separa a identidade da despesa da descrição editável e permite localizar com segurança o registro.</td></tr>
+  <tr><td>Rateio</td><td><code>Expense.shareFor</code> é sobrescrito em <code>FixedExpense</code> e <code>PerPersonExpense</code>; custos em centavos.</td><td>O modelo escolhe o cálculo por polimorfismo; a interface não duplica regras monetárias.</td></tr>
+  <tr><td>Resumo</td><td><code>Planning.totalsByParticipant</code>, <code>getTotalCents</code> e apresentação em <code>PlannerFrame.updateSummary</code>.</td><td>Totais derivados do estado atual evitam manter valores em cache que poderiam ficar desatualizados.</td></tr>
+  <tr><td>Persistência</td><td><code>PlanningRepository</code> e <code>FilePlanningRepository</code>; botões Salvar/Carregar e recuperação inicial.</td><td>Um contrato desacopla o controlador do arquivo concreto e permite tratar recuperação sem perder o estado atual.</td></tr>
+</table>
+
+<h3>Regras de cálculo e validação</h3>
+<table>
+  <caption><strong>Tabela 2 - Regra, implementação e efeito sobre os dados.</strong></caption>
+  <tr><th>Regra</th><th>Como e onde é aplicada</th><th>Comportamento</th></tr>
+  <tr><td>Participante</td><td><code>Planning.validateParticipant</code> e verificações em <code>addParticipant</code>/<code>updateParticipant</code>.</td><td>Código positivo e único, nome não vazio e orçamento >= 0; invalidez lança <code>IllegalArgumentException</code>.</td></tr>
+  <tr><td>Despesa e vínculo</td><td><code>Planning.createExpense</code> antes de adicionar ou substituir.</td><td>Descrição não vazia, valor > 0, lista não vazia, códigos existentes e sem repetição; opcional requer prioridade positiva.</td></tr>
+  <tr><td>Exclusão de pessoa</td><td><code>Planning.removeParticipant</code> percorre despesas vinculadas.</td><td>Bloqueia remoção enquanto houver vínculo, para não deixar despesa apontando a código inexistente.</td></tr>
+  <tr><td>Dinheiro</td><td><code>Money.parseCents</code> faz conversão decimal precisa; modelos guardam <code>long</code> em centavos.</td><td>Rejeita campo vazio, formato inválido ou mais de duas casas decimais; evita erro binário de <code>float/double</code>.</td></tr>
+  <tr><td>Fixa / por pessoa</td><td><code>FixedExpense.shareFor</code> usa quociente e resto; <code>PerPersonExpense.shareFor</code> aplica valor unitário.</td><td>Centavos restantes vão aos códigos selecionados em ordem crescente. Não selecionados pagam zero.</td></tr>
+  <tr><td>Orçamento</td><td>Totais do modelo são comparados aos orçamentos em <code>PlannerFrame.refresh</code> e <code>updateSummary</code>.</td><td>Total igual ao limite aparece como dentro; acima, mostra excedente. O planejamento continua registrável.</td></tr>
+  <tr><td>Falhas e estado</td><td>Visão apresenta exceções de validação; repositório declara falhas de E/S; controlador só atribui planejamento após carga bem-sucedida.</td><td>Mensagem explícita e preservação do estado anterior em operações inválidas ou falha ao carregar.</td></tr>
+</table>
+
+<h3>Fluxo dos dados: entrada, transformação e objetos envolvidos</h3>
+<p>Os campos são interpretados na visão antes de chegar ao modelo. O controlador encaminha valores já tipados; o modelo valida e modifica o estado somente depois que a entrada é considerada válida. A tabela abaixo acompanha um cadastro e a inclusão de uma despesa fixa, desde o formulário até os objetos armazenados e os valores calculados.</p>
+<table>
+  <caption><strong>Tabela 3 - Caminho dos dados em duas operações concretas.</strong></caption>
+  <tr><th>Etapa e entrada</th><th>Método executado e transformação</th><th>Objeto instanciado ou modificado</th><th>Resultado</th></tr>
+  <tr>
+    <td>1. Cadastro: código <code>"1"</code>, nome <code>"Ana"</code>, orçamento <code>"70,00"</code>.</td>
+    <td><code>PlannerFrame</code> executa <code>Integer.parseInt</code> para o código e <code>Money.parseCents("70,00")</code> para converter o texto monetário em <code>7000L</code>. Em seguida chama <code>PlannerController.addParticipant(1, "Ana", 7000)</code>.</td>
+    <td>O controlador encaminha para <code>Planning.addParticipant</code>. O método chama <code>validateParticipant</code>; após validação, cria <code>new Participant(1, "Ana", 7000)</code> e insere no mapa <code>participants</code> com a chave <code>1</code>.</td>
+    <td>O modelo passa a conter Ana com orçamento de 7000 centavos. O controlador pede atualização da visão; <code>PlannerFrame.refresh</code> apresenta o orçamento formatado como R$ 70,00.</td>
+  </tr>
+  <tr>
+    <td>2. Despesa fixa: descrição <code>"Transporte"</code>, valor <code>"90,00"</code>, tipo <code>Fixa</code>, participantes selecionados <code>[1, 2, 3]</code>, essencial marcado.</td>
+    <td>A visão converte o valor para <code>9000L</code>, obtém a lista de códigos dos itens selecionados e envia <code>perPerson=false</code>. Chama <code>PlannerController.addExpense(...)</code>.</td>
+    <td><code>Planning.addExpense</code> gera um UUID e chama <code>createExpense</code>. Este valida descrição, valor, códigos existentes, ausência de duplicatas e classificação. Como <code>perPerson</code> é falso, instancia <code>new FixedExpense(...)</code>, subclasse de <code>Expense</code>, e adiciona-a à lista <code>expenses</code>.</td>
+    <td>O planejamento mantém a despesa e os códigos vinculados. Quando a visão atualiza o resumo, <code>Planning.totalsByParticipant</code> percorre despesas como <code>Expense</code> e despacha <code>shareFor</code> para a implementação concreta. <code>FixedExpense</code> divide 9000 centavos: 3000 para cada código.</td>
+  </tr>
+  <tr>
+    <td>3. Consulta e apresentação dos totais.</td>
+    <td><code>Planning.totalsByParticipant</code> inicia os totais em zero e soma a contribuição de cada despesa para cada código selecionado. <code>getTotalCents</code> soma o total das despesas.</td>
+    <td>Não cria nem modifica participantes ou despesas; produz mapas/valores de consulta não modificáveis.</td>
+    <td>O controlador atualiza a tela. <code>PlannerFrame</code> formata centavos com <code>Money.format</code>, mostra situação orçamentária e detalhamento por despesa.</td>
+  </tr>
+</table>
+<p>Na edição de participante, a tela envia o código selecionado e os novos dados. <code>Planning.updateParticipant</code> valida os campos e cria outro <code>Participant</code> para substituir o anterior; as despesas não precisam ser regravadas porque guardam o mesmo código. Na edição de despesa, <code>createExpense</code> primeiro constrói uma nova especialização válida e só então a posição da lista é substituída. Assim, erro de entrada não deixa o modelo parcialmente atualizado.</p>
+<p>Para salvar, <code>PlannerController.save</code> entrega o <code>Planning</code> ao <code>PlanningRepository</code>; <code>FilePlanningRepository.save</code> serializa o objeto em arquivo temporário e substitui o destino. Para carregar, o repositório devolve um novo <code>Planning</code>; o controlador troca sua referência somente após a leitura completar com sucesso, e então atualiza a visão.</p>
+
+<h2 class="pagebreak">3. Modelagem, UML e organização da aplicação</h2>
+<p>A UML a seguir apresenta visibilidade (<code>+</code> pública, <code>-</code> privada e <code>#</code> protegida), atributos, operações e multiplicidades. <code>Planning</code> mantém participantes em mapa por código e despesas em lista. A relação com participantes nas despesas é representada por códigos, não por referências diretas aos objetos; isso reduz dependência e preserva os vínculos na serialização. A regra do modelo assegura pelo menos um código por despesa.</p>
+<figure class="uml">
+  <img src="uml-relatorio-detalhado.png" alt="Diagrama UML detalhado das classes do sistema">
+  <figcaption>Figura 1 - Diagrama de classes em alta resolução: modelo, especializações, MVC e persistência. A relação entre Expense e Participant é representada pelos códigos selecionados.</figcaption>
+</figure>
+
+<h3>Justificativa das classes e associações</h3>
+<p><code>Planning</code> agrega o estado mutável e centraliza cadastro, consulta, atualização e exclusão. <code>Participant</code> encapsula código, nome e orçamento; seus campos são privados e imutáveis, portanto uma edição substitui o objeto depois da validação. <code>Expense</code> concentra os dados comuns e declara métodos abstratos de rateio, total e tipo. As subclasses implementam regras distintas e a lista do planejamento é tipada como <code>Expense</code>, demonstrando polimorfismo.</p>
+<p>A multiplicidade Planning–Participant é 1 para 0..*: um planejamento contém zero ou mais participantes. Planning–Expense segue 1 para 0..*: o planejamento pode estar vazio ou conter várias despesas. Cada despesa referencia 1..* códigos; cada participante pode estar em 0..* despesas. A associação muitos-para-muitos é guardada do lado de Expense como uma lista sem duplicatas.</p>
+<p><code>Expense</code> guarda os códigos inteiros dos participantes, em vez de manter referências aos objetos <code>Participant</code>. O código é uma identidade estável: quando o orçamento ou o nome muda, <code>Planning</code> substitui o objeto do participante no mapa, e as despesas continuam vinculadas sem carregar cópias antigas nem duplicar dados. Na consulta, o planejamento resolve os códigos para os participantes atuais. A validação exige que todos existam e impede remover alguém ainda vinculado a uma despesa.</p>
+<p><code>PlanningRepository</code> define <code>save</code> e <code>load</code>; <code>FilePlanningRepository</code> implementa o contrato. <code>PlannerController</code> recebe a interface, portanto o controlador não depende de um caminho ou formato de arquivo específico. As classes <code>AlternativeSimulator</code> e <code>SimulationResult</code> implementam a extensão opcional, sem modificar o planejamento original.</p>
+
+<h3>MVC, Swing e pacotes</h3>
+<table>
+  <caption><strong>Tabela 3 - Distribuição de responsabilidades nos pacotes.</strong></caption>
+  <tr><th>Pacote / classe</th><th>Responsabilidade e motivo da separação</th></tr>
+  <tr><td><code>App</code></td><td>Cria o repositório, controlador e janela na thread Swing com <code>SwingUtilities.invokeLater</code>.</td></tr>
+  <tr><td><code>view</code></td><td><code>PlannerFrame</code> organiza abas Swing de participantes, despesas, resumo e simulador; <code>Money</code> converte e apresenta valores.</td></tr>
+  <tr><td><code>controller</code></td><td><code>PlannerController</code> encaminha eventos da visão ao modelo, pede atualização visual e coordena salvamento/carregamento.</td></tr>
+  <tr><td><code>model</code></td><td>Entidades, regras de validação, cálculo e simulador; não depende dos componentes Swing.</td></tr>
+  <tr><td><code>persistence</code></td><td>Contrato de repositório e implementação de arquivo, isolando detalhes de E/S.</td></tr>
+  <tr><td><code>tests</code></td><td>Testes executáveis das regras do modelo, cálculos, integração do controlador e persistência.</td></tr>
+</table>
+<p>Exemplo do fluxo MVC: ao adicionar uma despesa, <code>PlannerFrame</code> interpreta o valor com <code>Money</code> e envia campos ao controlador. O controlador chama <code>Planning.addExpense</code>; o modelo valida e instancia a especialização adequada. Se válido, o controlador atualiza a visão; se inválido, a janela mostra a mensagem e o modelo permanece intacto.</p>
+
+<h3>Coleções, exceções e arquivos</h3>
+<p><code>LinkedHashMap&lt;Integer, Participant&gt;</code> viabiliza busca pelo código único e mantém a ordem de cadastro; <code>ArrayList&lt;Expense&gt;</code> preserva a ordem das despesas e permite iteração para totais. <code>Expense</code> guarda os vínculos como uma lista sem duplicatas de códigos de participante, não como referências a objetos: o mapa de <code>Planning</code> continua sendo a fonte única dos dados atuais da pessoa, mesmo quando uma edição substitui seu objeto. Listas e mapas genéricos dão segurança de tipos; consultas retornam cópias ou visões não modificáveis, evitando edição do estado interno fora de <code>Planning</code>.</p>
+<p>As classes serializadas implementam <code>Serializable</code> e declaram <code>serialVersionUID</code>. Os fluxos são fechados com <code>try-with-resources</code>. O salvamento escreve arquivo temporário e tenta substituição atômica; a leitura verifica se o objeto recuperado é um <code>Planning</code>. O controlador só troca a referência depois que <code>load</code> retorna corretamente. Em inicialização, arquivo ausente inicia planejamento vazio; outro erro é comunicado pela janela.</p>
+
+<h3>Validação da UML e dos cálculos antes da tela</h3>
+<p>A UML registra abstrações e associações que guiaram a estrutura dos pacotes. Os cálculos são testados diretamente contra o modelo em <code>PlanningTest</code>, sem inicializar uma janela Swing. Por exemplo, <code>referenceCase</code> verifica totais em centavos e <code>centDistribution</code> testa o resto do rateio. Isso permite encontrar erros de regra sem depender de entrada manual. Depois, o controlador e a persistência também são testados; a suíte não automatiza interação visual, limitação registrada na seção 5.</p>
+<p>O código e o diagrama atualizado estão no repositório. Para execução e testes, as instruções são: compilar com o JDK 21 ou superior, iniciar <code>App</code> e executar <code>tests.PlanningTest</code> com assertions habilitadas. O README contém os comandos reproduzíveis.</p>
+
+<h2 class="pagebreak">4. Caso de referência e testes</h2>
+<h3>Dados do passeio e conferência dos resultados</h3>
+<table>
+  <caption><strong>Tabela 4 - Entradas do cenário principal.</strong></caption>
+  <tr><th>Participante</th><th>Código</th><th>Orçamento</th></tr>
+  <tr><td>Ana</td><td class="center">1</td><td class="number">R$ 70,00</td></tr>
+  <tr><td>Bruno</td><td class="center">2</td><td class="number">R$ 60,00</td></tr>
+  <tr><td>Carla</td><td class="center">3</td><td class="number">R$ 70,00</td></tr>
+</table>
+<table>
+  <tr><th>Despesa</th><th>Tipo</th><th>Valor informado</th><th>Participantes</th></tr>
+  <tr><td>Transporte</td><td>Fixa</td><td>R$ 90,00</td><td>Ana, Bruno e Carla</td></tr>
+  <tr><td>Almoço</td><td>Por pessoa</td><td>R$ 20,00</td><td>Ana, Bruno e Carla</td></tr>
+  <tr><td>Atividade recreativa</td><td>Fixa</td><td>R$ 30,00</td><td>Ana e Carla</td></tr>
+  <tr><td>Sobremesa</td><td>Por pessoa</td><td>R$ 10,00</td><td>Ana, Bruno e Carla</td></tr>
+</table>
+<table>
+  <caption><strong>Tabela 5 - Rateio calculado, esperado e resultado verificado.</strong></caption>
+  <tr><th>Pessoa</th><th>Transporte</th><th>Almoço</th><th>Atividade</th><th>Sobremesa</th><th>Total esperado e obtido</th><th>Orçamento / situação</th></tr>
+  <tr><td>Ana</td><td>R$ 30,00</td><td>R$ 20,00</td><td>R$ 15,00</td><td>R$ 10,00</td><td><strong>R$ 75,00</strong></td><td>R$ 70,00; excede R$ 5,00</td></tr>
+  <tr><td>Bruno</td><td>R$ 30,00</td><td>R$ 20,00</td><td>R$ 0,00</td><td>R$ 10,00</td><td><strong>R$ 60,00</strong></td><td>R$ 60,00; no limite</td></tr>
+  <tr><td>Carla</td><td>R$ 30,00</td><td>R$ 20,00</td><td>R$ 15,00</td><td>R$ 10,00</td><td><strong>R$ 75,00</strong></td><td>R$ 70,00; excede R$ 5,00</td></tr>
+</table>
+<p><strong>Conferência aritmética:</strong> o transporte resulta em R$ 30,00 para cada pessoa (R$ 90,00 ÷ 3); o almoço e a sobremesa cobram R$ 20,00 e R$ 10,00 de cada selecionado; a atividade resulta em R$ 15,00 para Ana e Carla (R$ 30,00 ÷ 2). Portanto, os valores esperados do enunciado estão corretos. A soma individual é Ana R$ 75,00, Bruno R$ 60,00 e Carla R$ 75,00, totalizando R$ 210,00. A diferença entre orçamento e custo é calculada individualmente; exceder não impede salvar o planejamento.</p>
+
+<h3>Casos automatizados, entradas e evidências</h3>
+<table>
+  <caption><strong>Tabela 6 - Resultado esperado, obtido e método de evidência.</strong></caption>
+  <tr><th>Entrada / operação</th><th>Resultado esperado</th><th>Resultado obtido</th><th>Evidência no teste</th></tr>
+  <tr><td>Caso principal: modelo de referência</td><td>Total 210,00; Ana 75,00, Bruno 60,00, Carla 75,00</td><td>Conforme</td><td><code>referenceCase</code>: igualdades em centavos.</td></tr>
+  <tr><td>Despesa fixa de 100,00, códigos 3, 1, 2</td><td>Cód. 1 = 33,34; cód. 2 e 3 = 33,33</td><td>Conforme</td><td><code>centDistribution</code>.</td></tr>
+  <tr><td>Valor em branco, despesa sem descrição, valor negativo e falta de participantes</td><td>Recusar entradas e manter estado</td><td>Conforme</td><td><code>validationDoesNotChangeState</code> e validação de <code>Money.parseCents</code>.</td></tr>
+  <tr><td>Código de participante duplicado e nome vazio</td><td>Recusar cadastro e preservar os três participantes</td><td>Conforme</td><td><code>validationDoesNotChangeState</code>.</td></tr>
+  <tr><td>Orçamento no caso principal</td><td>Ana e Carla excedem R$ 5,00; Bruno fica no limite</td><td>Conforme</td><td><code>referenceCase</code> compara totais e orçamentos.</td></tr>
+  <tr><td>Alterar orçamento de Ana para 80,00</td><td>Custo fica 75,00; agora dentro do limite</td><td>Conforme para custo; orçamento foi atualizado</td><td><code>expenseDeletionAndBudgetUpdate</code>.</td></tr>
+  <tr><td>Excluir atividade recreativa do caso original</td><td>60,00 para cada um; total 180,00</td><td>Conforme</td><td><code>expenseDeletionAndBudgetUpdate</code>.</td></tr>
+  <tr><td>Salvar e recriar controlador/repositório</td><td>Três participantes, quatro despesas, vínculos e totais recuperados do arquivo</td><td>Conforme</td><td><code>persistenceRoundTrip</code> simula a reinicialização com novas instâncias.</td></tr>
+  <tr><td>Carregar texto como arquivo inválido</td><td>Falha e planejamento em uso preservado</td><td>Conforme</td><td><code>failedLoadPreservesPlanning</code>.</td></tr>
+  <tr><td>Simulador: prioridades 3 e 1</td><td>Manter atividade; retirar sobremesa; totais 65, 50, 65</td><td>Conforme</td><td><code>simulatorCases</code>.</td></tr>
+  <tr><td>Simulador: orçamento Ana = 40,00</td><td>Sem solução; despesas essenciais de Ana = 50,00</td><td>Conforme</td><td><code>simulatorCases</code>.</td></tr>
+</table>
+<p>A suíte foi executada e apresentou <code>Todos os testes passaram.</code> As evidências são asserts executáveis nos métodos da classe de teste; a interação automatizada de cliques e componentes Swing não faz parte da suíte, portanto não se afirma cobertura visual automatizada.</p>
+<p><strong>Reprodução no repositório</strong> (raiz do projeto, JDK 21 ou superior):</p>
+<pre><code>mkdir -p bin
+javac -encoding UTF-8 -d bin $(find src -name '*.java')
+java -ea -cp bin tests.PlanningTest
+java -cp bin App</code></pre>
+
+<h2 class="pagebreak">5. Avaliação, dificuldades, contribuições e melhorias</h2>
+<p>A principal escolha de orientação a objetos foi manter as regras no modelo: encapsulamento impede que telas editem listas e mapas diretamente; herança e polimorfismo permitem dois rateios sem condicionais duplicadas; a interface de repositório separa o uso do planejamento do formato do arquivo. O teste independente de Swing foi útil para detectar erros aritméticos e preservar o comportamento esperado antes de depender da interação gráfica.</p>
+<p>As dificuldades técnicas mais relevantes foram representar dinheiro sem imprecisão, distribuir restos de centavos de forma determinística e impedir corrupção lógica em edições e carregamentos. Centavos inteiros e ordenação por código resolvem o primeiro caso; validação antes da substituição e atribuição do planejamento só depois de leitura completa tratam os outros. O teste da exclusão confirma que os valores são recalculados a partir da lista atual, em vez de manter um total acumulado desatualizado.</p>
+<p>A interface informa excedentes e validações, mas poderia ser aprimorada com testes automatizados de interação, confirmação de exclusões e exportação do resumo. A suíte cobre modelo, controlador e persistência; não cobre eventos gráficos. Para uso real, também seria pertinente validar o arquivo serializado de fontes não confiáveis e oferecer recuperação ou backup configurável.</p>
+<table>
+  <caption><strong>Tabela 7 - Contribuições da equipe (preencher pelos integrantes).</strong></caption>
+  <tr><th>Integrante</th><th>Implementação</th><th>Integração</th><th>Validação</th><th>Documentação</th></tr>
+  <tr><td class="placeholder">[Nome 1]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 2]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 3]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 4]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+</table>
+<h3>Referências</h3>
+<p>DEITEL, Paul; DEITEL, Harvey. <em>Java: como programar</em>. 10. ed. São Paulo: Pearson Education do Brasil, 2017.</p>
+<p>ORACLE. <em>The Java Tutorials: Collections</em>. Disponível em: https://docs.oracle.com/javase/tutorial/collections/. Acesso em: 23 nov. 2026.</p>
+<p>ORACLE. <em>The Java Tutorials: Creating a GUI With Swing</em>. Disponível em: https://docs.oracle.com/javase/tutorial/uiswing/. Acesso em: 23 nov. 2026.</p>
+<p>ASCX002. <em>Planejador de despesas compartilhadas</em>. Repositório do projeto. Disponível em: https://github.com/ASCX002/planejador-de-despesas. Acesso em: 23 nov. 2026.</p>
+
+<h2 class="pagebreak">Complemento A — Operações da interface e ciclo de uso</h2>
+<p>Esta página detalha como o usuário percorre as telas e como cada ação altera o planejamento. A janela <code>PlannerFrame</code> é organizada em quatro abas para que cadastro, consulta e simulação não disputem o mesmo formulário. A barra superior contém ações que se aplicam ao planejamento inteiro: carregar o caso de referência, salvar e carregar o arquivo local.</p>
+
+<table>
+  <caption><strong>Tabela A1 — Interação, dados usados e atualização visual.</strong></caption>
+  <tr><th>Tela/ação</th><th>Entrada e seleção</th><th>Regra executada</th><th>O que o usuário vê após sucesso</th></tr>
+  <tr><td>Participantes — Adicionar</td><td>Código, nome, orçamento em reais</td><td>Conversão de orçamento para centavos e validação de código, nome e limite</td><td>Nova linha com orçamento, custo atual e situação</td></tr>
+  <tr><td>Participantes — Atualizar</td><td>Seleciona uma linha, edita nome/orçamento</td><td>O código existente identifica a pessoa; orçamento e nome são revalidados</td><td>Linha e situação orçamentária atualizadas</td></tr>
+  <tr><td>Participantes — Excluir</td><td>Seleciona uma linha da tabela</td><td>Bloqueia se o código constar em qualquer despesa</td><td>Participante removido ou mensagem de vínculo</td></tr>
+  <tr><td>Despesas — Adicionar</td><td>Descrição, valor, tipo, lista múltipla e essencial/prioridade</td><td>Valida valor, descrição, participantes e regras de prioridade</td><td>Nova linha de despesa e resumo recalculado</td></tr>
+  <tr><td>Despesas — Editar/Excluir</td><td>Seleciona uma despesa na tabela</td><td>Carrega campos pelo UUID e valida antes de substituir; exclusão usa o UUID</td><td>Campos da seleção preenchidos; depois da operação, tabela e resumo atualizados</td></tr>
+  <tr><td>Resumo</td><td>Somente consulta</td><td>Recalcula custos e compara com orçamentos atuais</td><td>Despesas, total geral, parcelas por pessoa e saldo/excedente</td></tr>
+  <tr><td>Simulador</td><td>Usa classificações e prioridades existentes</td><td>Busca combinações que cabem nos orçamentos</td><td>Lista de despesas mantidas/retiradas e novos totais, sem alterar a origem</td></tr>
+</table>
+
+<p>As tabelas de participantes e despesas usam <code>DefaultTableModel</code> configurado como somente leitura. Isso é intencional: uma célula editável poderia alterar o texto apresentado sem invocar validação nem atualizar o modelo. A edição é feita nos formulários e confirmada pelo controlador. Ao selecionar uma despesa, a aplicação recupera o objeto pelo identificador UUID, restaura os códigos dos participantes selecionados e preenche tipo, essencialidade e prioridade. Ao selecionar uma pessoa, o código fica não editável para preservar sua identidade durante a atualização.</p>
+<p>Os seletores múltiplos seguem a regra de participação seletiva. O método <code>selectedCodes()</code> converte os itens selecionados em inteiros e envia a lista ao controlador. A lista exibida combina código e nome para ajudar a identificar os participantes; o modelo persiste somente os códigos. Assim, alterar o nome não quebra os vínculos e a tabela de resumo sempre consulta o nome atual.</p>
+<p>Operações de botão são executadas por <code>runAction</code>. Exceções de validação, falhas de E/S e falhas de classe são convertidas em caixas de diálogo com a mensagem disponível. A ação de carregar o caso de referência exige confirmação quando substitui o estado atual, pois esse comando troca todo o objeto <code>Planning</code>, em vez de mesclar dados.</p>
+
+<h2 class="pagebreak">Complemento B — Detalhamento dos cálculos e invariantes</h2>
+<p>O cálculo é feito em centavos inteiros e tem como unidade base a contribuição de uma pessoa em uma despesa. O método abstrato <code>Expense.shareFor(code)</code> é chamado pelo modelo sem distinguir a implementação concreta. A regra de total da despesa também difere: a despesa fixa tem como total o valor informado; a despesa por pessoa tem como total o valor unitário multiplicado pela quantidade de participantes.</p>
+
+<table>
+  <caption><strong>Tabela B1 — Contribuições reconstruídas pelo algoritmo do caso de referência.</strong></caption>
+  <tr><th>Despesa</th><th>Tipo/classe instanciada</th><th>Operação</th><th>Participantes</th><th>Total contabilizado</th></tr>
+  <tr><td>Transporte — R$ 90,00</td><td>Fixa / <code>FixedExpense</code></td><td>9000 ÷ 3 = 3000 centavos</td><td>Ana 30,00; Bruno 30,00; Carla 30,00</td><td>R$ 90,00</td></tr>
+  <tr><td>Almoço — R$ 20,00</td><td>Por pessoa / <code>PerPersonExpense</code></td><td>2000 centavos por selecionado</td><td>Ana 20,00; Bruno 20,00; Carla 20,00</td><td>R$ 60,00</td></tr>
+  <tr><td>Atividade recreativa — R$ 30,00</td><td>Fixa / <code>FixedExpense</code></td><td>3000 ÷ 2 = 1500 centavos</td><td>Ana 15,00; Carla 15,00; Bruno 0,00</td><td>R$ 30,00</td></tr>
+  <tr><td>Sobremesa — R$ 10,00</td><td>Por pessoa / <code>PerPersonExpense</code></td><td>1000 centavos por selecionado</td><td>Ana 10,00; Bruno 10,00; Carla 10,00</td><td>R$ 30,00</td></tr>
+</table>
+
+<p>A soma da coluna de totais é R$ 210,00. A soma das contribuições individuais também é R$ 210,00: Ana = 3000 + 2000 + 1500 + 1000 = 7500 centavos; Bruno = 3000 + 2000 + 0 + 1000 = 6000; Carla = 3000 + 2000 + 1500 + 1000 = 7500. A igualdade entre as duas somas é um invariante útil: em despesas fixas, as parcelas devem recompor o valor informado; em despesas por pessoa, o total da despesa corresponde ao valor unitário vezes os participantes selecionados.</p>
+<p>Para R$ 100,00 dividido por três, o código usa divisão inteira: 10000 / 3 produz base 3333 centavos e resto 1. <code>FixedExpense.shareFor</code> ordena os códigos; o primeiro recebe mais um centavo. A entrada da lista pode ser [3, 1, 2], mas os valores permanecem determinísticos: código 1 = 3334 e códigos 2 e 3 = 3333. O teste verifica os valores e, assim, protege a regra contra mudanças na ordem de cadastro ou seleção.</p>
+<p><code>Planning.totalsByParticipant</code> inicia todos os participantes com zero, percorre as despesas e adiciona a parcela calculada para cada código vinculado. Isso faz com que pessoas sem participação em determinada despesa não recebam contribuição e permaneçam no mapa de totais. <code>Math.addExact</code> detecta overflow em somas; a tela não mascara essa condição com um valor aproximado.</p>
+
+<h2 class="pagebreak">Complemento C — Persistência, inicialização e tratamento de falhas</h2>
+<p>O arquivo local representa um retrato serializado de <code>Planning</code>, não um arquivo de texto que o usuário edita campo por campo. A escolha mantém participantes, subclasses concretas de <code>Expense</code>, listas de códigos e prioridades no mesmo objeto raiz. O contrato <code>PlanningRepository</code> é a fronteira: o controlador chama <code>save</code> ou <code>load</code> e não manipula fluxos de bytes.</p>
+
+<h3>Salvamento</h3>
+<ol>
+  <li><code>PlannerController.save()</code> encaminha o objeto de planejamento atual ao repositório.</li>
+  <li><code>FilePlanningRepository.save</code> transforma o destino em caminho absoluto e cria a pasta pai se necessário.</li>
+  <li>Cria um arquivo temporário no mesmo diretório e grava o objeto com <code>ObjectOutputStream</code>.</li>
+  <li>Fecha o fluxo por <code>try-with-resources</code> antes de mover o arquivo. Primeiro tenta <code>ATOMIC_MOVE</code>; se não for suportado, tenta substituição normal.</li>
+  <li>O bloco <code>finally</code> remove o temporário remanescente. Isso evita deixar lixo de uma operação incompleta.</li>
+</ol>
+<p>O arquivo temporário é criado no diretório de destino para aumentar a possibilidade de a movimentação atômica ocorrer dentro do mesmo sistema de arquivos. A gravação completa precede a troca do destino: se a serialização falhar, o arquivo antigo não é substituído. A movimentação não promete proteção contra falha física do dispositivo ou corrupção externa, mas reduz a janela de arquivo parcialmente escrito.</p>
+
+<h3>Carregamento e estados observáveis</h3>
+<table>
+  <caption><strong>Tabela C1 — Resposta prevista conforme a situação do arquivo.</strong></caption>
+  <tr><th>Condição</th><th>Comportamento do repositório/controlador</th><th>Efeito no planejamento</th></tr>
+  <tr><td>Arquivo ausente no início</td><td><code>loadAtStartup</code> trata <code>NoSuchFileException</code></td><td>Primeira execução continua com planejamento vazio, sem substituir por dados fictícios</td></tr>
+  <tr><td>Arquivo válido</td><td><code>load()</code> lê objeto, verifica <code>instanceof Planning</code> e retorna</td><td>Controlador substitui a referência e atualiza as tabelas e resumo</td></tr>
+  <tr><td>Bytes inválidos/classe ausente</td><td>Exceção de I/O ou <code>ClassNotFoundException</code> sobe até a interface</td><td>Mensagem explícita; planejamento anteriormente em uso é preservado</td></tr>
+  <tr><td>Objeto não é Planning</td><td>Repositório lança <code>IOException</code></td><td>Não aceita conteúdo de tipo incompatível; estado atual permanece</td></tr>
+  <tr><td>Falha ao salvar</td><td><code>IOException</code> é apresentada pela ação do botão</td><td>Não mostra confirmação de sucesso; usuário é informado da falha</td></tr>
+</table>
+<p>Na leitura, o repositório primeiro constrói uma variável local <code>loaded</code>; somente depois da conclusão, <code>PlannerController.load</code> executa <code>planning = loaded</code>. A ordem importa: não se zera o modelo antes de saber se existe um arquivo válido. Os testes cobrem o ciclo válido com arquivo temporário e também um arquivo textual inválido, conferindo que o estado de referência em uso continua com total de R$ 210,00.</p>
+<p>As classes de dados relevantes implementam <code>Serializable</code> e declaram <code>serialVersionUID</code>. Os identificadores de versão são explícitos para que a compatibilidade serial não dependa de um valor calculado automaticamente a partir da estrutura compilada. Mudanças futuras na forma dos dados ainda exigem planejamento de migração, que não faz parte deste escopo.</p>
+
+<h2 class="pagebreak">Complemento D — Simulador: busca e leitura dos resultados</h2>
+<p>O simulador opcional trata a seleção de despesas como um problema de busca exata. Ele separa as essenciais das opcionais e, para <em>n</em> opcionais, percorre as <code>2^n</code> máscaras de bits possíveis. Um bit ligado significa manter aquela despesa; desligado significa retirá-la. O limite de dez opcionais limita a busca a no máximo 1024 candidatos, um tamanho pequeno e previsível para a interface.</p>
+<p>No caso de referência, transporte e almoço são essenciais. Atividade recreativa tem prioridade 3; sobremesa tem prioridade 1. Os totais essenciais são R$ 50,00 por participante. A Tabela D1 mostra todos os quatro subconjuntos possíveis, na ordem dos opcionais apresentada pelo planejamento.</p>
+
+<table>
+  <caption><strong>Tabela D1 — Espaço de busca do caso de referência.</strong></caption>
+  <tr><th>Máscara (atividade, sobremesa)</th><th>Opcionais mantidas</th><th>Prioridade</th><th>Ana / Bruno / Carla</th><th>Orçamentos respeitados?</th></tr>
+  <tr><td>00</td><td>Nenhuma</td><td>0</td><td>R$ 50 / R$ 50 / R$ 50</td><td>Sim</td></tr>
+  <tr><td>10</td><td>Atividade recreativa</td><td>3</td><td>R$ 65 / R$ 50 / R$ 65</td><td>Sim — melhor prioridade</td></tr>
+  <tr><td>01</td><td>Sobremesa</td><td>1</td><td>R$ 60 / R$ 60 / R$ 60</td><td>Sim</td></tr>
+  <tr><td>11</td><td>Atividade e sobremesa</td><td>4</td><td>R$ 75 / R$ 60 / R$ 75</td><td>Não — Ana e Carla excedem</td></tr>
+</table>
+
+<p><code>AlternativeSimulator.findBest</code> não considera somente a soma das prioridades: primeiro valida o orçamento de cada participante. Entre os candidatos válidos, guarda o de maior pontuação. Nesse caso, máscara 10 vence porque tem prioridade 3 e respeita os três limites. O resultado informa manter atividade e retirar sobremesa. As despesas essenciais nunca são removidas.</p>
+<p>Antes de enumerar opcionais, o algoritmo verifica as essenciais. Se alguma pessoa já ultrapassa o próprio orçamento apenas com elas, retorna <code>solutionFound=false</code>, lista as essenciais mantidas para diagnóstico e não afirma que há combinação viável. Com Ana limitada a R$ 40,00, o custo essencial dela é R$ 50,00; portanto falta solução independentemente de quais opcionais sejam escolhidas.</p>
+<p>Para cada máscara, os totais são construídos em estruturas locais; a rotina não remove despesas de <code>Planning</code>. A lista <code>kept</code>, a lista <code>removed</code>, os novos totais, a pontuação e o indicador de solução são reunidos em <code>SimulationResult</code>. A tela exibe separadamente mantidas e retiradas e, em caso inviável, calcula e mostra o excesso essencial.</p>
+<p>A enumeração custa aproximadamente <code>O(2^n × p × e)</code>, sendo <em>p</em> o número de participantes e <em>e</em> o número de despesas incluídas na soma. O limite de dez opcionais torna essa solução simples de verificar e garante encontrar a prioridade ótima, ao contrário de uma estratégia gulosa que poderia escolher uma despesa de prioridade alta e bloquear uma combinação melhor. O teste valida tanto a solução prioritária quanto a ausência de solução quando as essenciais já excedem o orçamento.</p>
+</body>
+</html>

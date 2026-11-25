@@ -89,6 +89,11 @@ public final class PlannerController {
         refresh();
     }
 
+    public void startNewPlanning() {
+        planning = new Planning();
+        refresh();
+    }
+
     public SimulationResult simulate() {
         return new AlternativeSimulator().findBest(planning);
     }

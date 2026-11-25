@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Cabe no bolso - Relatório técnico</title>
+  <style>
+    @page { size: A4; margin: 15mm 17mm 16mm 17mm; }
+    body { font-family: "Times New Roman", serif; font-size: 10.4pt; line-height: 1.25; color: #111; }
+    h1 { font-size: 17pt; margin: 0 0 4mm; text-align: center; }
+    h2 { font-size: 13pt; margin: 4mm 0 1.5mm; border-bottom: 1px solid #777; }
+    h3 { font-size: 11pt; margin: 2.5mm 0 1mm; }
+    p { margin: 1.2mm 0; text-align: justify; }
+    .subtitle { text-align: center; font-size: 12pt; margin: 0 0 3mm; }
+    .meta { border: 1px solid #777; padding: 2.5mm; margin: 2mm 0 4mm; }
+    .meta p { margin: 0.7mm 0; }
+    .placeholder { color: #7a1f1f; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 2mm 0; font-size: 8.6pt; }
+    th, td { border: 1px solid #777; padding: 1mm; vertical-align: top; }
+    th { background: #e8e8e8; text-align: left; }
+    .number { text-align: right; white-space: nowrap; }
+    .center { text-align: center; }
+    figure { margin: 2mm 0; text-align: center; }
+    figure img { max-width: 100%; max-height: 125mm; }
+    figcaption { font-size: 8.8pt; margin-top: 1mm; }
+    ul { margin: 1mm 0 1.5mm 5mm; padding-left: 4mm; }
+    li { margin-bottom: 0.7mm; }
+    code { font-family: "Courier New", monospace; font-size: 8.8pt; }
+    .pagebreak { page-break-before: always; }
+  </style>
+</head>
+<body>
+
+<h1>Cabe no bolso: Planejador de despesas compartilhadas</h1>
+<p class="subtitle">Relatório técnico da atividade final de Programação Orientada a Objetos</p>
+
+<div class="meta">
+  <p><strong>Equipe:</strong> <span class="placeholder">[Nomes completos dos integrantes]</span></p>
+  <p><strong>Matrículas:</strong> <span class="placeholder">[Matrículas dos integrantes]</span></p>
+  <p><strong>Objetivo:</strong> justificar as decisões técnicas usadas para implementar o planejamento compartilhado, calcular rateios e preservar a consistência dos dados.</p>
+  <p><strong>Repositório:</strong> https://github.com/ASCX002/planejador-de-despesas</p>
+  <p><strong>Versão analisada:</strong> commit d20661d, 13/11/2026. Relatório revisado em 22/11/2026.</p>
+</div>
+
+<h2>1. Decisões centrais de modelagem</h2>
+<p>A aplicação foi construída como um sistema dirigido pelas regras do domínio, e não apenas por formulários da interface. O principal problema técnico foi evitar que cada tela implementasse cálculos, validações ou persistência de forma diferente. Por isso, o estado e as operações foram concentrados no modelo, enquanto o Swing ficou responsável por entrada e apresentação.</p>
+<p><code>Planning</code> foi escolhido como objeto central porque participantes e despesas precisam ser alterados em conjunto e seus totais dependem dos vínculos atuais. Essa classe reúne o estado agregado e impede que operações inválidas substituam dados válidos. As interfaces restantes recebem objetos já validados e consultam os resultados sem manter cópias de totais.</p>
+
+<figure>
+  <img src="uml.svg" alt="Diagrama de classes UML">
+  <figcaption>Figura 1 - UML das decisões estruturais da aplicação.</figcaption>
+</figure>
+
+<h3>Por que <code>Participant</code> é uma classe separada</h3>
+<p><code>Participant</code> concentra código, nome e orçamento. A separação evita guardar esse conjunto em listas paralelas e permite identificar uma pessoa pelo código em qualquer vínculo. Também permite que <code>Planning</code> aceite alterações de orçamento sem repetir a regra de validação em vários componentes da interface.</p>
+
+<h3>Por que os participantes usam um mapa e as despesas usam uma lista</h3>
+<p><code>LinkedHashMap&lt;Integer, Participant&gt;</code> foi usado porque o código é a chave natural e deve ser único. Além da busca direta, o mapa preserva a ordem de cadastro. <code>ArrayList&lt;Expense&gt;</code> foi escolhido para despesas porque a aplicação percorre a coleção para calcular totais, editar por identificação e manter a ordem visual. A combinação também facilita impedir vínculo com participante inexistente.</p>
+
+<h2 class="pagebreak">2. Por que houve uma hierarquia de despesas</h2>
+<p><code>Expense</code> é abstrata porque todas as despesas possuem identificação, descrição, valor, participantes, essencialidade e prioridade, mas o cálculo da contribuição varia. Essa abstração permite que <code>Planning</code> percorra uma única coleção sem saber qual classe concreta está sendo usada.</p>
+
+<table>
+  <caption><strong>Tabela 1 - Motivação das classes de despesa.</strong></caption>
+  <tr><th>Decisão</th><th>Problema evitado</th><th>Implementação adotada</th></tr>
+  <tr><td>Classe abstrata</td><td>Lógica de cálculo espalhada em condicionais da interface</td><td><code>Expense.shareFor()</code> define o contrato polimórfico.</td></tr>
+  <tr><td><code>FixedExpense</code></td><td>Repartir um valor fixo sem distribuir os centavos</td><td>Quociente inteiro e restos atribuídos pelo código crescente.</td></tr>
+  <tr><td><code>PerPersonExpense</code></td><td>Cobrança correta apenas de participantes vinculados</td><td>Retorna o valor unitário somente para o código selecionado.</td></tr>
+</table>
+
+<p>O polimorfismo existe na chamada feita pelo modelo para <code>expense.shareFor(code)</code>. O método concreto decide como calcular. Essa separação permite incluir outro tipo de despesa no futuro sem alterar o algoritmo de soma de participantes.</p>
+
+<h2>3. Por que os valores são armazenados em centavos</h2>
+<p>Dinheiro não foi representado por <code>double</code> ou <code>float</code> porque operações de divisão poderiam produzir diferenças binárias. Os atributos e argumentos usam <code>long</code> na unidade de centavos, e <code>Money</code> concentra conversão da entrada e formatação da saída. Essa decisão torna cada unidade monetária inteira e torna o cálculo reproduzível.</p>
+<p>No rateio fixo, a divisão usa quociente e resto inteiros. Depois da divisão básica, os centavos restantes são entregues aos códigos selecionados em ordem crescente. R$ 100,00 dividido entre os códigos 1, 2 e 3 produz R$ 33,34, R$ 33,33 e R$ 33,33. Isso satisfaz a soma esperada sem depender de arredondamento decimal.</p>
+
+<h2 class="pagebreak">4. Por que a validação precede toda alteração</h2>
+<p>As regras foram implementadas no modelo para que interface, testes e persistência não contornem as validações. Qualquer código não positivo ou repetido, nome vazio, orçamento negativo, descrição vazia, valor não positivo, falta de participantes ou vínculo inexistente gera <code>IllegalArgumentException</code>. A exceção é usada para distinguir problema de entrada de falha de infraestrutura.</p>
+
+<table>
+  <caption><strong>Tabela 2 - Estratégia de validação e motivo.</strong></caption>
+  <tr><th>Situação</th><th>Implementação</th><th>Justificativa</th></tr>
+  <tr><td>Cadastro ou edição</td><td>Valida antes de criar ou substituir o objeto</td><td>Evita estado parcialmente alterado.</td></tr>
+  <tr><td>Participantes repetidos</td><td>Conta elementos distintos da lista de vínculos</td><td>Impede uma despesa cobrar a mesma pessoa duas vezes.</td></tr>
+  <tr><td>Participante vinculado</td><td>Bloqueia a remoção</td><td>Preserva a integridade dos códigos referenciados.</td></tr>
+  <tr><td>Erro na interface</td><td>Controlador captura e apresenta mensagem</td><td>Usuário recebe a causa sem perder o planejamento anterior.</td></tr>
+</table>
+
+<p>Na edição, o objeto substituto é construído por <code>createExpense</code> antes de alterar a lista. Só após todas as validações a posição anterior é substituída. Essa transação simples evita parcialmente editar descrição, valor e participantes com dados misturados.</p>
+
+<h2>5. Por que foi adotada a organização MVC</h2>
+<p>O Swing foi separado do modelo porque tabelas e caixas não precisam conhecer regra de orçamento ou serialização. <code>PlannerFrame</code> apenas coleta dados e apresenta resultados. <code>PlannerController</code> traduz eventos da visão em operações do modelo e coordena o carregamento e o salvamento.</p>
+<p>Por exemplo, ao alterar o orçamento de Ana, a visão envia código, nome e novo orçamento ao controlador. Este chama <code>Planning.updateParticipant</code>. O modelo valida e substitui o participante; em seguida, os totais são recalculados a partir das despesas atuais. Se houver falha, a exceção retorna como mensagem e o estado válido permanece.</p>
+<p>Essa organização foi usada para limitar efeitos colaterais. Uma ação da interface não precisa modificar diretamente o mapa de participantes, a lista de despesas ou o arquivo.</p>
+
+<h2 class="pagebreak">6. Por que a persistência usa uma interface e serialização</h2>
+<p><code>PlanningRepository</code> separa o contrato da implementação. O controlador depende da interface e pode usar outra origem de dados sem conhecer detalhes do arquivo. <code>FilePlanningRepository</code> implementa o contrato por serialização, de acordo com o requisito e com o estado inteiro das relações de objetos.</p>
+<p><code>Planning</code>, participantes e despesas implementam <code>Serializable</code> e possuem <code>serialVersionUID</code>. Isso permite recuperar tanto os dados quanto os vínculos por código sem reconstruir manualmente cada referência.</p>
+<p>O salvamento usa arquivo temporário e substituição do destino. Essa escolha reduz o risco de deixar o arquivo principal parcialmente escrito. Os fluxos são fechados por <code>try-with-resources</code>. Ao carregar, o novo planejamento só substitui o atual depois que a deserialização termina sem exceção. Arquivo ausente ou inválido deixa o planejamento já em uso intacto.</p>
+
+<h2>7. Por que o simulador usa busca por combinações</h2>
+<p>O objetivo extra exige escolher uma combinação viável que maximize a soma das prioridades. Como o limite é dez despesas opcionais, existe apenas um conjunto máximo de 2¹⁰ combinações. A busca por máscara percorre esse espaço de forma completa e determina o maior valor sem heurística incorreta.</p>
+<p>Antes da busca, o simulador soma as essenciais. Se excedem qualquer orçamento, não há solução e o programa informa os totais essenciais. Caso contrário, cada máscara mantém ou retira cada opcional. O candidato é válido somente se todos os participantes permanecem dentro do orçamento. Entre os candidatos válidos, vence o maior <code>priorityScore</code>.</p>
+<p>O simulador recebe o planejamento original, mas cria listas e mapas temporários. Nenhuma edição é enviada ao objeto persistido. Isso evita que uma sugestão altere os dados usados pelo usuário.</p>
+
+<h2 class="pagebreak">8. Validação técnica do caso de referência</h2>
+<table>
+  <caption><strong>Tabela 3 - Caso principal obtido pela aplicação.</strong></caption>
+  <tr><th>Pessoa</th><th>Orçamento</th><th>Total obtido</th><th>Comparação</th></tr>
+  <tr><td>Ana</td><td class="number">R$ 70,00</td><td class="number">R$ 75,00</td><td>Excede R$ 5,00</td></tr>
+  <tr><td>Bruno</td><td class="number">R$ 60,00</td><td class="number">R$ 60,00</td><td>Dentro do limite</td></tr>
+  <tr><td>Carla</td><td class="number">R$ 70,00</td><td class="number">R$ 75,00</td><td>Excede R$ 5,00</td></tr>
+  <tr><td colspan="2"><strong>Custo total</strong></td><td class="number"><strong>R$ 210,00</strong></td><td>Correto</td></tr>
+</table>
+<p>A solução preserva o que foi exigido: transporte fixo é dividido em R$ 30,00; almoço unitário custa R$ 20,00 para todos; atividade fixa custa R$ 15,00 para Ana e Carla; sobremesa unitária custa R$ 10,00 para todos. As divergências não ocorreram porque cada teste compara o valor em centavos calculado pelo modelo.</p>
+
+<h3>O que os testes verificam e por quê</h3>
+<table>
+  <caption><strong>Tabela 4 - Evidências automatizadas.</strong></caption>
+  <tr><th>Cenário</th><th>Resultado esperado</th><th>Objetivo técnico</th></tr>
+  <tr><td>Caso principal</td><td>R$ 210,00 e totais individuais</td><td>Confirmar composição entre despesa fixa e por pessoa.</td></tr>
+  <tr><td>Centavos</td><td>33,34; 33,33; 33,33</td><td>Confirmar uso de quociente e resto, não arredondamento aproximado.</td></tr>
+  <tr><td>Entradas inválidas</td><td>Recusar sem alterar estado</td><td>Confirmar atomicidade das validações.</td></tr>
+  <tr><td>Alteração de orçamento</td><td>Custo permanece R$ 75,00 em Ana</td><td>Separar custo individual de limite financeiro.</td></tr>
+  <tr><td>Exclusão de despesa</td><td>R$ 60,00 por pessoa e R$ 180,00 no total</td><td>Confirmar recálculo integral após remoção.</td></tr>
+  <tr><td>Persistência</td><td>Dados, vínculos e totais recuperados</td><td>Confirmar serialização completa.</td></tr>
+  <tr><td>Arquivo inválido</td><td>Falha tratada sem troca do estado atual</td><td>Confirmar recuperação segura.</td></tr>
+  <tr><td>Simulador</td><td>Atividade mantida e sobremesa retirada</td><td>Confirmar prioridade máxima viável.</td></tr>
+</table>
+
+<pre><code>mkdir -p bin
+javac -encoding UTF-8 -d bin $(find src -name '*.java')
+java -ea -cp bin tests.PlanningTest</code></pre>
+<p>A execução validada respondeu: <code>Todos os testes passaram.</code></p>
+
+<h2>9. Limitações e evolução</h2>
+<p>Os testes foram projetados para regras centrais e não substituem testes das ações visuais em cada tela. Como evolução, os componentes Swing poderiam receber testes de integração, a confirmação de exclusões poderia exigir ação explícita e o relatório poderia ser exportado em arquivo externo. Persistência em arquivo temporário já reduz inconsistência, mas poderia ganhar nome de arquivo escolhido pelo usuário e backup rotativo.</p>
+
+<h2>10. Contribuições da equipe</h2>
+<table>
+  <caption><strong>Tabela 5 - Contribuições da equipe.</strong></caption>
+  <tr><th>Integrante</th><th>Implementação</th><th>Integração</th><th>Validação</th><th>Documentação</th></tr>
+  <tr><td class="placeholder">[Nome 1]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 2]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 3]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+  <tr><td class="placeholder">[Nome 4]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td><td>[atividade]</td></tr>
+</table>
+
+<h2>11. Referências</h2>
+<p>ORACLE. <em>The Java Tutorials: Collections and Swing</em>. Disponível em: https://docs.oracle.com/javase/tutorial/. Acesso em: 22 nov. 2026.</p>
+<p>ORACLE. <em>Serializable and Java Object Serialization</em>. Disponível em: https://docs.oracle.com/javase/tutorial/javabeans/advanced/index.html. Acesso em: 22 nov. 2026.</p>
+<p>Repositório do projeto: https://github.com/ASCX002/planejador-de-despesas.</p>
+</body>
+</html>

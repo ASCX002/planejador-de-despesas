@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170mm" height="123.75mm" viewBox="0 0 1360 990" role="img" aria-label="Diagrama UML detalhado do planejador de despesas">
+  <rect width="1360" height="990" fill="#ffffff"/>
+  <text x="680" y="34" fill="#111827" font-family="serif" font-size="24" font-weight="bold" text-anchor="middle">Cabe no bolso - Diagrama de classes</text>
+
+  <!-- App and MVC -->
+  <rect x="25" y="65" width="225" height="88" fill="#f8fafc" stroke="#1f2937" stroke-width="2"/>
+  <text x="137.5" y="91" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">App</text>
+  <line x1="25" y1="101" x2="250" y2="101" stroke="#1f2937"/>
+  <text x="39" y="124" fill="#111827" font-family="serif" font-size="15">+ main(args: String[]): void</text>
+  <text x="39" y="145" fill="#64748b" font-family="serif" font-size="13">cria Swing, controlador e repositório</text>
+
+  <rect x="25" y="220" width="250" height="150" fill="#eff6ff" stroke="#1f2937" stroke-width="2"/>
+  <text x="150" y="247" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PlannerFrame</text>
+  <line x1="25" y1="258" x2="275" y2="258" stroke="#1f2937"/>
+  <text x="39" y="281" fill="#111827" font-family="serif" font-size="14">- controller: PlannerController</text>
+  <text x="39" y="303" fill="#111827" font-family="serif" font-size="14">- participantModel: TableModel</text>
+  <text x="39" y="325" fill="#111827" font-family="serif" font-size="14">- expenseModel: TableModel</text>
+  <line x1="25" y1="337" x2="275" y2="337" stroke="#1f2937"/>
+  <text x="39" y="359" fill="#111827" font-family="serif" font-size="14">+ refresh(Planning): void</text>
+
+  <rect x="25" y="445" width="250" height="210" fill="#eff6ff" stroke="#1f2937" stroke-width="2"/>
+  <text x="150" y="472" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PlannerController</text>
+  <line x1="25" y1="483" x2="275" y2="483" stroke="#1f2937"/>
+  <text x="39" y="506" fill="#111827" font-family="serif" font-size="14">- repository: PlanningRepository</text>
+  <text x="39" y="528" fill="#111827" font-family="serif" font-size="14">- planning: Planning</text>
+  <text x="39" y="550" fill="#111827" font-family="serif" font-size="14">- view: PlannerFrame</text>
+  <line x1="25" y1="562" x2="275" y2="562" stroke="#1f2937"/>
+  <text x="39" y="585" fill="#111827" font-family="serif" font-size="13">+ add/update/removeParticipant(...)</text>
+  <text x="39" y="607" fill="#111827" font-family="serif" font-size="13">+ add/update/removeExpense(...)</text>
+  <text x="39" y="629" fill="#111827" font-family="serif" font-size="13">+ save(), load(), simulate()</text>
+
+  <!-- Core domain -->
+  <rect x="340" y="190" width="330" height="280" fill="#f0fdf4" stroke="#1f2937" stroke-width="2"/>
+  <text x="505" y="217" fill="#111827" font-family="serif" font-size="19" font-weight="bold" text-anchor="middle">Planning</text>
+  <line x1="340" y1="228" x2="670" y2="228" stroke="#1f2937"/>
+  <text x="354" y="251" fill="#111827" font-family="serif" font-size="14">- participants: LinkedHashMap&lt;Integer, Participant&gt;</text>
+  <text x="354" y="273" fill="#111827" font-family="serif" font-size="14">- expenses: ArrayList&lt;Expense&gt;</text>
+  <line x1="340" y1="285" x2="670" y2="285" stroke="#1f2937"/>
+  <text x="354" y="308" fill="#111827" font-family="serif" font-size="14">+ addParticipant(...): void</text>
+  <text x="354" y="330" fill="#111827" font-family="serif" font-size="14">+ updateParticipant(...): void</text>
+  <text x="354" y="352" fill="#111827" font-family="serif" font-size="14">+ removeParticipant(code): void</text>
+  <text x="354" y="374" fill="#111827" font-family="serif" font-size="14">+ add/update/removeExpense(...)</text>
+  <text x="354" y="396" fill="#111827" font-family="serif" font-size="14">+ getParticipants(): Map</text>
+  <text x="354" y="418" fill="#111827" font-family="serif" font-size="14">+ getExpenses(): List</text>
+  <text x="354" y="440" fill="#111827" font-family="serif" font-size="14">+ totalsByParticipant(): Map</text>
+  <text x="354" y="462" fill="#111827" font-family="serif" font-size="14">+ getTotalCents(): long</text>
+
+  <rect x="340" y="555" width="330" height="180" fill="#f0fdf4" stroke="#1f2937" stroke-width="2"/>
+  <text x="505" y="582" fill="#111827" font-family="serif" font-size="19" font-weight="bold" text-anchor="middle">Participant</text>
+  <line x1="340" y1="593" x2="670" y2="593" stroke="#1f2937"/>
+  <text x="354" y="616" fill="#111827" font-family="serif" font-size="14">- code: int</text>
+  <text x="354" y="638" fill="#111827" font-family="serif" font-size="14">- name: String</text>
+  <text x="354" y="660" fill="#111827" font-family="serif" font-size="14">- budgetCents: long</text>
+  <line x1="340" y1="672" x2="670" y2="672" stroke="#1f2937"/>
+  <text x="354" y="695" fill="#111827" font-family="serif" font-size="14">+ getCode(): int</text>
+  <text x="354" y="717" fill="#111827" font-family="serif" font-size="14">+ getName(): String; getBudgetCents(): long</text>
+
+  <!-- Expense abstraction and subclasses -->
+  <rect x="735" y="175" width="315" height="315" fill="#fff7ed" stroke="#1f2937" stroke-width="2"/>
+  <text x="892.5" y="202" fill="#111827" font-family="serif" font-size="19" font-weight="bold" text-anchor="middle">«abstract» Expense</text>
+  <line x1="735" y1="213" x2="1050" y2="213" stroke="#1f2937"/>
+  <text x="749" y="236" fill="#111827" font-family="serif" font-size="14">- id: String</text>
+  <text x="749" y="258" fill="#111827" font-family="serif" font-size="14">- description: String</text>
+  <text x="749" y="280" fill="#111827" font-family="serif" font-size="14">- amountCents: long</text>
+  <text x="749" y="302" fill="#111827" font-family="serif" font-size="14">- participantCodes: ArrayList&lt;Integer&gt;</text>
+  <text x="749" y="324" fill="#111827" font-family="serif" font-size="14">- essential: boolean; priority: int</text>
+  <line x1="735" y1="336" x2="1050" y2="336" stroke="#1f2937"/>
+  <text x="749" y="359" fill="#111827" font-family="serif" font-size="14"># Expense(...)</text>
+  <text x="749" y="381" fill="#111827" font-family="serif" font-size="14">+ getId(), getDescription()</text>
+  <text x="749" y="403" fill="#111827" font-family="serif" font-size="14">+ getAmountCents(), getParticipantCodes()</text>
+  <text x="749" y="425" fill="#111827" font-family="serif" font-size="14">+ isEssential(), getPriority()</text>
+  <text x="749" y="447" fill="#111827" font-family="serif" font-size="14">+ shareFor(code): long {abstract}</text>
+  <text x="749" y="469" fill="#111827" font-family="serif" font-size="14">+ getTotalCents(): long; getType(): String</text>
+
+  <rect x="735" y="555" width="315" height="145" fill="#ffffff" stroke="#1f2937" stroke-width="2"/>
+  <text x="892.5" y="582" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">FixedExpense</text>
+  <line x1="735" y1="593" x2="1050" y2="593" stroke="#1f2937"/>
+  <text x="749" y="616" fill="#111827" font-family="serif" font-size="14">+ shareFor(code): long</text>
+  <text x="749" y="638" fill="#111827" font-family="serif" font-size="14">+ getTotalCents(): long</text>
+  <text x="749" y="660" fill="#111827" font-family="serif" font-size="14">+ getType(): String</text>
+  <text x="749" y="682" fill="#64748b" font-family="serif" font-size="13">divide e distribui o resto por código</text>
+
+  <rect x="735" y="755" width="315" height="145" fill="#ffffff" stroke="#1f2937" stroke-width="2"/>
+  <text x="892.5" y="782" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">PerPersonExpense</text>
+  <line x1="735" y1="793" x2="1050" y2="793" stroke="#1f2937"/>
+  <text x="749" y="816" fill="#111827" font-family="serif" font-size="14">+ shareFor(code): long</text>
+  <text x="749" y="838" fill="#111827" font-family="serif" font-size="14">+ getTotalCents(): long</text>
+  <text x="749" y="860" fill="#111827" font-family="serif" font-size="14">+ getType(): String</text>
+  <text x="749" y="882" fill="#64748b" font-family="serif" font-size="13">cobra o valor por selecionado</text>
+
+  <!-- Persistence -->
+  <rect x="1100" y="185" width="235" height="155" fill="#f5f3ff" stroke="#1f2937" stroke-width="2"/>
+  <text x="1217.5" y="212" fill="#111827" font-family="serif" font-size="15" font-weight="bold" text-anchor="middle">«interface» PlanningRepository</text>
+  <line x1="1100" y1="223" x2="1335" y2="223" stroke="#1f2937"/>
+  <text x="1114" y="248" fill="#111827" font-family="serif" font-size="14">+ save(Planning): void</text>
+  <text x="1114" y="272" fill="#111827" font-family="serif" font-size="14">+ load(): Planning</text>
+  <text x="1114" y="307" fill="#64748b" font-family="serif" font-size="13">throws IOException, ClassNotFoundException</text>
+
+  <rect x="1100" y="405" width="235" height="160" fill="#ffffff" stroke="#1f2937" stroke-width="2"/>
+  <text x="1217.5" y="432" fill="#111827" font-family="serif" font-size="16" font-weight="bold" text-anchor="middle">FilePlanningRepository</text>
+  <line x1="1100" y1="443" x2="1335" y2="443" stroke="#1f2937"/>
+  <text x="1114" y="467" fill="#111827" font-family="serif" font-size="14">- file: Path</text>
+  <line x1="1100" y1="480" x2="1335" y2="480" stroke="#1f2937"/>
+  <text x="1114" y="504" fill="#111827" font-family="serif" font-size="14">+ save(Planning): void</text>
+  <text x="1114" y="528" fill="#111827" font-family="serif" font-size="14">+ load(): Planning</text>
+  <text x="1114" y="552" fill="#64748b" font-family="serif" font-size="13">arquivo serializado</text>
+
+  <!-- Simulator -->
+  <rect x="1100" y="630" width="235" height="125" fill="#fefce8" stroke="#1f2937" stroke-width="2"/>
+  <text x="1217.5" y="657" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">AlternativeSimulator</text>
+  <line x1="1100" y1="668" x2="1335" y2="668" stroke="#1f2937"/>
+  <text x="1114" y="692" fill="#111827" font-family="serif" font-size="14">+ findBest(Planning):</text>
+  <text x="1114" y="714" fill="#111827" font-family="serif" font-size="14">  SimulationResult</text>
+  <text x="1114" y="741" fill="#64748b" font-family="serif" font-size="13">até 10 despesas opcionais</text>
+
+  <rect x="1100" y="800" width="235" height="120" fill="#fefce8" stroke="#1f2937" stroke-width="2"/>
+  <text x="1217.5" y="827" fill="#111827" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle">SimulationResult</text>
+  <line x1="1100" y1="838" x2="1335" y2="838" stroke="#1f2937"/>
+  <text x="1114" y="862" fill="#111827" font-family="serif" font-size="14">- kept, removed: List&lt;Expense&gt;</text>
+  <text x="1114" y="884" fill="#111827" font-family="serif" font-size="14">- totals: Map; priorityScore: long</text>
+  <text x="1114" y="906" fill="#111827" font-family="serif" font-size="14">- solutionFound: boolean</text>
+
+  <!-- Links and labels -->
+  <rect x="136" y="153" width="3" height="67" fill="#334155"/>
+  <rect x="149" y="370" width="3" height="75" fill="#334155"/>
+  <rect x="275" y="523" width="30" height="3" fill="#334155"/>
+  <rect x="302" y="228" width="3" height="297" fill="#334155"/>
+  <rect x="303" y="227" width="37" height="3" fill="#334155"/>
+  <polygon points="340,222 350,228.5 340,235" fill="#334155"/>
+  <rect x="670" y="299" width="65" height="3" fill="#334155"/>
+  <rect x="504" y="470" width="3" height="85" fill="#334155"/>
+  <rect x="700" y="445" width="37" height="3" fill="#334155"/>
+  <rect x="699" y="446" width="3" height="184" fill="#334155"/>
+  <rect x="670" y="628" width="32" height="3" fill="#334155"/>
+  <rect x="891" y="500" width="3" height="55" fill="#334155"/>
+  <polygon points="886,500 892.5,490 899,500" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+  <rect x="891" y="489" width="3" height="31" fill="#334155"/>
+  <polygon points="886,490 892.5,480 899,490" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+  <rect x="892" y="519" width="178" height="3" fill="#334155"/>
+  <rect x="1068" y="520" width="3" height="235" fill="#334155"/>
+  <rect x="1050" y="753" width="20" height="3" fill="#334155"/>
+  <rect x="1050" y="298" width="50" height="3" fill="#334155"/>
+  <rect x="1216" y="351" width="3" height="7" fill="#334155"/>
+  <rect x="1216" y="365" width="3" height="7" fill="#334155"/>
+  <rect x="1216" y="379" width="3" height="7" fill="#334155"/>
+  <rect x="1216" y="393" width="3" height="7" fill="#334155"/>
+  <polygon points="1211,340 1224,340 1217.5,350" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+  <rect x="1216" y="755" width="3" height="45" fill="#334155"/>
+  <text x="516" y="510" fill="#334155" font-family="serif" font-size="14">1     0..*</text>
+  <text x="682" y="288" fill="#334155" font-family="serif" font-size="14">1     0..*</text>
+  <text x="681" y="439" fill="#334155" font-family="serif" font-size="13">1..*</text>
+  <text x="673" y="645" fill="#334155" font-family="serif" font-size="13">0..*</text>
+  <text x="904" y="545" fill="#334155" font-family="serif" font-size="13">herança / sobrescrita</text>
+  <text x="1227" y="380" fill="#334155" font-family="serif" font-size="13">implementa</text>
+  <text x="680" y="970" fill="#64748b" font-family="serif" font-size="14" text-anchor="middle">Associação Expense–Participant: lista de 1..* códigos; cada participante pode ocorrer em 0..* despesas.</text>
+</svg>
